@@ -24,7 +24,8 @@ runs:
     - name: Write SHAs to file
       shell: bash
       run: |
-        echo "${{ env.HEAD_SHA }}\n${{ env.BASE_SHA }}" > shas.txt
+        echo "${{ env.HEAD_SHA }}" > shas.txt
+        echo "${{ env.BASE_SHA }}" >> shas.txt
 
     - uses: actions/upload-artifact@v4
       id: artifact-upload-step
