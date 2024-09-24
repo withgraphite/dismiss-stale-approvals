@@ -1,0 +1,24 @@
+name: 'Dismiss stale approvals'
+description: 'Dismiss approvals on a pull request if the diff has changed'
+author: 'Graphite'
+
+inputs:
+  github-token:
+    description:
+      'A GITHUB_TOKEN secret or PAT that has write access to the repository'
+    required: true
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: Say hello world
+      run: echo "Hello world!"
+      shell: bash
+
+    - name: Dismiss approvals
+      uses: withgraphite/dismiss-all-approvals-js@main
+      with:
+        github-token: ${{ inputs.github-token }}
+        reason: This PR's diff has changed since it was approved
+
