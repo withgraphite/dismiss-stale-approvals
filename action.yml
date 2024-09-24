@@ -12,9 +12,18 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Say hello world
-      run: echo "Hello world!"
-      shell: bash
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Read SHAs
+      run: |
+       echo "BASE_SHA=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
+       echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+
+    - name: Output SHAs
+      run: |
+        echo "Base SHA: ${{ env.BASE_SHA }}"
+        echo "Head SHA: ${{ env.HEAD_SHA }}"
 
     - name: Dismiss approvals
       uses: withgraphite/dismiss-all-approvals-js@main
