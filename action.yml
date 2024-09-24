@@ -16,11 +16,13 @@ runs:
       uses: actions/checkout@v4
 
     - name: Read SHAs
+      shell: bash
       run: |
        echo "BASE_SHA=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
        echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
 
     - name: Output SHAs
+      shell: bash
       run: |
         echo "Base SHA: ${{ env.BASE_SHA }}"
         echo "Head SHA: ${{ env.HEAD_SHA }}"
