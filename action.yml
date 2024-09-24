@@ -27,11 +27,18 @@ runs:
         echo "${{ env.HEAD_SHA }}" > shas.txt
         echo "${{ env.BASE_SHA }}" >> shas.txt
 
-    - uses: actions/upload-artifact@v4
+    - name: Upload SHAs
+      uses: actions/upload-artifact@v4
       id: artifact-upload-step
       with:
         name: shas
         path: shas.txt
+
+    - name: Download SHAs from last run
+      shell: bash
+      run: |
+        echo "Workflow Name: $GITHUB_WORKFLOW"
+
 
     - name: Dismiss approvals
       uses: withgraphite/dismiss-all-approvals-js@main
