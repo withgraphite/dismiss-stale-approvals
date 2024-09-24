@@ -21,11 +21,16 @@ runs:
        echo "BASE_SHA=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
        echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
 
-    - name: Output SHAs
+    - name: Write SHAs to file
       shell: bash
       run: |
-        echo "Base SHA: ${{ env.BASE_SHA }}"
-        echo "Head SHA: ${{ env.HEAD_SHA }}"
+        echo "${{ env.HEAD_SHA }}\n${{ env.BASE_SHA }}" > shas.txt
+
+    - uses: actions/upload-artifact@v4
+      id: artifact-upload-step
+      with:
+        name: shas
+        path: shas.txt
 
     - name: Dismiss approvals
       uses: withgraphite/dismiss-all-approvals-js@main
