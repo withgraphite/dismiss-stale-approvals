@@ -7,15 +7,17 @@ inputs:
     description:
       'A GITHUB_TOKEN secret or PAT that has write access to the repository'
     required: true
-  workflow-name:
-    description:
-      'The name of the GitHub Actions workflow that is using this action. Used to fetch the diff from the previous run.'
-    required: true
 
 
 runs:
   using: "composite"
   steps:
+    - name: Download SHAs from last run
+      shell: bash
+      run: |
+        ./latest_artifact.sh "${{ inputs.github-token }}" "${{ github.repository_owner }}" "${{ github.repository }}" "${{ github.ref_name }}" "${{ github.workflow }}" "dismiss-stale-approvals-shas"
+        ls
+
     - name: Checkout code
       uses: actions/checkout@v4
 
@@ -35,14 +37,8 @@ runs:
       uses: actions/upload-artifact@v4
       id: artifact-upload-step
       with:
-        name: shas
+        name: dismiss-stale-approvals-shas
         path: shas.txt
-
-    - name: Download SHAs from last run
-      shell: bash
-      run: |
-        echo "Workflow Name: ${{ inputs.workflow-name }}"
-        echo "Name from here: ${{ github.workflow }}"
 
     - name: Dismiss approvals
       uses: withgraphite/dismiss-all-approvals-js@main
