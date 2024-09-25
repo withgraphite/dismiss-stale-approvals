@@ -42,6 +42,7 @@ runs:
       shell: bash
       run: |
         echo "Workflow Name: ${{ inputs.workflow-name }}"
+        echo "Name from here: ${{ github.workflow }}"
 
     - name: Dismiss approvals
       uses: withgraphite/dismiss-all-approvals-js@main
