@@ -7,6 +7,10 @@ inputs:
     description:
       'A GITHUB_TOKEN secret or PAT that has write access to the repository'
     required: true
+  workflow-name:
+    description:
+      'The name of the GitHub Actions workflow that is using this action. Used to fetch the diff from the previous run.'
+    required: true
 
 
 runs:
@@ -37,7 +41,7 @@ runs:
     - name: Download SHAs from last run
       shell: bash
       run: |
-        echo "Workflow Name: " "${{ env.GITHUB_WORKFLOW }}"
+        echo "Workflow Name: ${{ inputs.workflow-name }}"
 
     - name: Dismiss approvals
       uses: withgraphite/dismiss-all-approvals-js@main
