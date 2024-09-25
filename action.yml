@@ -37,7 +37,7 @@ runs:
     - name: Download SHAs from last run
       shell: bash
       run: |
-        echo "Workflow Name: "  ${{ env.GITHUB_WORKFLOW }}
+        echo "Workflow Name: " "${{ env.GITHUB_WORKFLOW }}"
 
     - name: Dismiss approvals
       uses: withgraphite/dismiss-all-approvals-js@main
