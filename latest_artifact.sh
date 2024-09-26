@@ -1,10 +1,10 @@
 #!/bin/sh
-# Source: https://gist.github.com/Willsr71/e4884be88f98b4c298692975c0ec8edb
+# Adapted from: https://gist.github.com/Willsr71/e4884be88f98b4c298692975c0ec8edb
 
 github_token=$1
 owner=$2
 repo=$3
-branch=$4
+pr_number=$4
 workflow_name=$5
 artifact_name=$6
 
@@ -19,7 +19,7 @@ echo "Latest workflow ID: ${latest_workflow_id}"
 latest_workflow_run_id=$(curl -s \
     -H "Authorization: Bearer ${github_token}" \
     https://api.github.com/repos/${owner}/${repo}/actions/workflows/${latest_workflow_id}/runs \
-    | jq '[.workflow_runs[] | select(.status=="completed" and .conclusion=="success" and .head_branch=="'${branch}'")] | sort_by(.updated_at) | reverse[0].id')
+		| jq '[.workflow_runs[] | select(.status=="completed" and .conclusion=="success" and (.pull_requests | any(.number=="'${$pr_number}'")))] | sort_by(.updated_at) | reverse[0].id')
 echo "Latest workflow run ID: ${latest_workflow_run_id}"
 
 latest_artifact_id=$(curl -s \

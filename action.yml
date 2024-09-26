@@ -13,9 +13,10 @@ runs:
   using: "composite"
   steps:
     - name: Download SHAs from last run
-      shell: bash
+      shell: sh
       run: |
-        ./latest_artifact.sh "${{ inputs.github-token }}" "${{ github.repository_owner }}" "${{ github.repository }}" "${{ github.ref_name }}" "${{ github.workflow }}" "dismiss-stale-approvals-shas"
+        PR_NUMBER=echo ${{github.ref_name}} | cut -d '/' -f 1
+        ./latest_artifact.sh "${{ inputs.github-token }}" "${{ github.repository_owner }}" "${{ github.repository }}" "$PR_NUMBER" "${{ github.workflow }}" "dismiss-stale-approvals-shas"
         ls
 
     - name: Checkout code
