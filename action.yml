@@ -20,8 +20,8 @@ runs:
       shell: bash
       run: |
         latest_artifact.sh "${{ inputs.github-token }}" "${{ github.repository }}" "$(echo ${{github.ref_name}} | cut -d '/' -f 1)" "${{ github.head_ref }}" "${{ github.workflow }}" "dismiss-stale-approvals-shas"
-        echo "PREV_HEAD_SHA=$(echo shas.tx | head -n 1)" >> $GITHUB_ENV
-        echo "PREV_BASE_SHA=$(echo shas.tx | tail -n 1)" >> $GITHUB_ENV
+        echo "PREV_HEAD_SHA=$(head -n 1 shas.txt)" >> $GITHUB_ENV
+        echo "PREV_BASE_SHA=$(tail -n 1 shas.txt)" >> $GITHUB_ENV
       env:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
