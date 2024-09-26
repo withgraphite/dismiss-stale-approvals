@@ -26,6 +26,7 @@ latest_workflow_id=$(curl -s \
     | jq '.workflows[] | select(.name=="'${workflow_name}'").id')
 echo "Latest workflow ID: ${latest_workflow_id}"
 
+echo "this should be headed"
 # debug
 curl -s \
     -H "Authorization: Bearer ${github_token}" \
