@@ -12,11 +12,13 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Set GitHub path
+      shell: bash
+      run: echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
+
     - name: Download SHAs from last run
       shell: bash
       run: |
-        echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
-        ls -al "$GITHUB_ACTION_PATH" # debug
         latest_artifact.sh "${{ inputs.github-token }}" "${{ github.repository_owner }}" "${{ github.repository }}" "$(echo ${{github.ref_name}} | cut -d '/' -f 1)" "${{ github.workflow }}" "dismiss-stale-approvals-shas"
         ls
       env:
