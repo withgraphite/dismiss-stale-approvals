@@ -22,7 +22,7 @@ workflow_runs=$(curl -s \
     -H "Authorization: Bearer ${github_token}" \
 		https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name})
 latest_workflow_run_id=$(echo ${workflow_runs} \
-		| jq '([.workflow_runs[] | select(.pull_requests | any(.number == "'${pr_number}'"))] | max_by(.run_number)) | .id')
+		| jq '([.workflow_runs[] | select(.pull_requests | any(.number == '${pr_number}'))] | max_by(.run_number)) | .id')
 echo "Latest workflow run ID: ${latest_workflow_run_id}"
 
 latest_artifact_id=$(curl -s \
