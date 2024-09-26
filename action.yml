@@ -19,7 +19,7 @@ runs:
     - name: Download SHAs from last run
       shell: bash
       run: |
-        latest_artifact.sh "${{ inputs.github-token }}" "${{ github.repository }}" "$(echo ${{github.ref_name}} | cut -d '/' -f 1)" "${{ github.workflow }}" "dismiss-stale-approvals-shas"
+        latest_artifact.sh "${{ inputs.github-token }}" "${{ github.repository }}" "$(echo ${{github.ref_name}} | cut -d '/' -f 1)" "${{ github.head_ref }}" "${{ github.workflow }}" "dismiss-stale-approvals-shas"
         ls
       env:
         GITHUB_ACTION_PATH: ${{ github.action_path }}

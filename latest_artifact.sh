@@ -5,10 +5,12 @@ github_token=$1
 # NOTE: repository is the full name, e.g. owner/repo
 repository=$2
 pr_number=$3
-workflow_name=$4
-artifact_name=$5
+branch_name=$4
+workflow_name=$5
+artifact_name=$6
 
 echo "Getting latest artifact for ${repository} with workflow name {$workflow_name} and artifact name {$artifact_name}"
+echo "PR number: ${pr_number} - branch name: ${branch_name}"
 
 # debug
 curl -s \
@@ -27,13 +29,12 @@ echo "Latest workflow ID: ${latest_workflow_id}"
 # debug
 curl -s \
     -H "Authorization: Bearer ${github_token}" \
-    https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs
+    https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name} | head -n 50
 # debug
-
 latest_workflow_run_id=$(curl -s \
     -H "Authorization: Bearer ${github_token}" \
-    https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs \
-		| jq '[.workflow_runs[] | select(.status=="completed" and .conclusion=="success" and (.pull_requests | any(.number=="'${$pr_number}'")))] | sort_by(.updated_at) | reverse[0].id')
+    https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name} \
+		| jq '([.workflow_runs[] | select(.pull_requests | any(.number == 129))] | max_by(.run_number)).id')
 echo "Latest workflow run ID: ${latest_workflow_run_id}"
 
 # debug
