@@ -23,7 +23,7 @@ workflow_runs=$(curl -s \
 		https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name})
 echo "Workflow runs: ${workflow_runs}"
 latest_workflow_run_id=$(echo ${workflow_runs} \
-		| jq '([.workflow_runs[] | select(.pull_requests | any(.number == 129))] | max_by(.run_number)) | .id')
+		| jq '([.workflow_runs[] | select(.pull_requests | any(.number == "'${pr_number}'"))] | max_by(.run_number)) | .id')
 echo "Latest workflow run ID: ${latest_workflow_run_id}"
 
 # # debug
