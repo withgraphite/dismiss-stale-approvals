@@ -11,9 +11,6 @@ artifact_name=$6
 
 echoerr() { echo "$@" 1>&2; }
 
-echoerr "Getting latest artifact for ${repository} with workflow name {$workflow_name} and artifact name {$artifact_name}"
-echoerr "PR number: ${pr_number} - branch name: ${branch_name}"
-
 latest_workflow_id=$(curl -sS \
     -H "Authorization: Bearer ${github_token}" \
     https://api.github.com/repos/${repository}/actions/workflows \
