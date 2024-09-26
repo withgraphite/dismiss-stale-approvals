@@ -18,18 +18,19 @@ latest_workflow_id=$(curl -s \
     | jq '.workflows[] | select(.name=="'${workflow_name}'").id')
 echo "Latest workflow ID: ${latest_workflow_id}"
 
-echo "this should be headed"
-latest_workflow_run_id=$(curl -s \
+workflow_runs=$(curl -s \
     -H "Authorization: Bearer ${github_token}" \
-    https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name} \
+		https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name})
+echo "Workflow runs: ${workflow_runs}"
+latest_workflow_run_id=echo ${workflow_runs}
 		| jq '([.workflow_runs[] | select(.pull_requests | any(.number == 129))] | max_by(.run_number)) | .id')
 echo "Latest workflow run ID: ${latest_workflow_run_id}"
 
-# debug
-curl -s \
-    -H "Authorization: Bearer ${github_token}" \
-    https://api.github.com/repos/${repository}/actions/runs/${latest_workflow_run_id}/artifacts
-# debug
+# # debug
+# curl -s \
+#     -H "Authorization: Bearer ${github_token}" \
+#     https://api.github.com/repos/${repository}/actions/runs/${latest_workflow_run_id}/artifacts
+# # debug
 
 latest_artifact_id=$(curl -s \
     -H "Authorization: Bearer ${github_token}" \
