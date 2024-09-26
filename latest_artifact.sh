@@ -15,6 +15,8 @@ curl -s \
     -H "Authorization: Bearer ${github_token}" \
     https://api.github.com/repos/${owner}/${repo}/actions/workflows
 # debug
+echo "Authorization: Bearer ${github_token}"
+echo "https://api.github.com/repos/${owner}/${repo}/actions/workflows"
 
 latest_workflow_id=$(curl -s \
     -H "Authorization: Bearer ${github_token}" \
