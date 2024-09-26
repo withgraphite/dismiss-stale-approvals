@@ -10,24 +10,39 @@ artifact_name=$6
 
 echo "Getting latest artifact for ${owner}/${repo} with workflow name {$workflow_name} and artifact name {$artifact_name}"
 
+# debug
+curl -s \
+    -H "Authorization: Bearer ${github_token}" \
+    https://api.github.com/repos/${owner}/${repo}/actions/workflows
+# debug
+
 latest_workflow_id=$(curl -s \
     -H "Authorization: Bearer ${github_token}" \
     https://api.github.com/repos/${owner}/${repo}/actions/workflows \
-		| tee /dev/stdout \
     | jq '.workflows[] | select(.name=="'${workflow_name}'").id')
 echo "Latest workflow ID: ${latest_workflow_id}"
+
+# debug
+curl -s \
+    -H "Authorization: Bearer ${github_token}" \
+    https://api.github.com/repos/${owner}/${repo}/actions/workflows/${latest_workflow_id}/runs
+# debug
 
 latest_workflow_run_id=$(curl -s \
     -H "Authorization: Bearer ${github_token}" \
     https://api.github.com/repos/${owner}/${repo}/actions/workflows/${latest_workflow_id}/runs \
-		| tee /dev/stdout \
 		| jq '[.workflow_runs[] | select(.status=="completed" and .conclusion=="success" and (.pull_requests | any(.number=="'${$pr_number}'")))] | sort_by(.updated_at) | reverse[0].id')
 echo "Latest workflow run ID: ${latest_workflow_run_id}"
+
+# debug
+curl -s \
+    -H "Authorization: Bearer ${github_token}" \
+    https://api.github.com/repos/${owner}/${repo}/actions/runs/${latest_workflow_run_id}/artifacts
+# debug
 
 latest_artifact_id=$(curl -s \
     -H "Authorization: Bearer ${github_token}" \
     https://api.github.com/repos/${owner}/${repo}/actions/runs/${latest_workflow_run_id}/artifacts \
-		| tee /dev/stdout \
     | jq '.artifacts[] | select(.name=="'${artifact_name}'").id')
 echo "Latest workflow ID: ${latest_artifact_id}"
 
