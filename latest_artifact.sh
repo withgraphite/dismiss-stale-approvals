@@ -11,7 +11,7 @@ artifact_name=$6
 echo "Getting latest artifact for ${owner}/${repo} with workflow name {$workflow_name} and artifact name {$artifact_name}"
 
 # debug token scope
-$ curl -sS -f -I -H "Authorization: Bearer ${github_token}" https://api.github.com | grep -i x-oauth-scopes
+curl -sS -f -I -H "Authorization: Bearer ${github_token}" https://api.github.com | grep -i x-oauth-scopes
 # debug token scope
 
 # debug
