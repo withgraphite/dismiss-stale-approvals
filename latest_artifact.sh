@@ -12,14 +12,6 @@ artifact_name=$6
 echo "Getting latest artifact for ${repository} with workflow name {$workflow_name} and artifact name {$artifact_name}"
 echo "PR number: ${pr_number} - branch name: ${branch_name}"
 
-# debug
-curl -s \
-    -H "Authorization: Bearer ${github_token}" \
-    https://api.github.com/repos/${repository}/actions/workflows
-# debug
-echo "Authorization: Bearer ${github_token}"
-echo "https://api.github.com/repos/${repository}/actions/workflows"
-
 latest_workflow_id=$(curl -s \
     -H "Authorization: Bearer ${github_token}" \
     https://api.github.com/repos/${repository}/actions/workflows \
@@ -27,11 +19,6 @@ latest_workflow_id=$(curl -s \
 echo "Latest workflow ID: ${latest_workflow_id}"
 
 echo "this should be headed"
-# debug
-curl -s \
-    -H "Authorization: Bearer ${github_token}" \
-    https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name} | head -n 50
-# debug
 latest_workflow_run_id=$(curl -s \
     -H "Authorization: Bearer ${github_token}" \
     https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name} \
@@ -48,7 +35,7 @@ latest_artifact_id=$(curl -s \
     -H "Authorization: Bearer ${github_token}" \
     https://api.github.com/repos/${repository}/actions/runs/${latest_workflow_run_id}/artifacts \
     | jq '.artifacts[] | select(.name=="'${artifact_name}'").id')
-echo "Latest workflow ID: ${latest_artifact_id}"
+echo "Latest artifact ID: ${latest_artifact_id}"
 
 curl -L -H "Accept: application/vnd.github+json" \
     -H "Authorization: Bearer ${github_token}" \
