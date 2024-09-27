@@ -46,6 +46,8 @@ runs:
        echo "BASE_SHA=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
 
     - name: Check if diff has changed
+      continue-on-error: true
+      id: check
       shell: bash
       run: |
         if [ -z ${{ env.PREV_HEAD_SHA }} ] || [ -z ${{ env.PREV_BASE_SHA }} ]; then
@@ -68,7 +70,7 @@ runs:
         fi
 
     - name: Dismiss approvals if diff has changed or if any prior step failed
-      if: failure() || env.HAS_DIFF != '0'
+      if: job.steps.check.status == failure() || env.HAS_DIFF != '0'
       uses: withgraphite/dismiss-all-approvals-js@main
       with:
         github-token: ${{ inputs.github-token }}
@@ -82,6 +84,7 @@ runs:
 
     - name: Upload SHAs
       uses: actions/upload-artifact@v4
+      continue-on-error: true
       id: artifact-upload-step
       with:
         name: dismiss-stale-approvals-shas
