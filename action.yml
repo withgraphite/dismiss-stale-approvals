@@ -45,6 +45,20 @@ runs:
        echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
        echo "BASE_SHA=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
 
+    - name: Write SHAs to file
+      shell: bash
+      run: |
+        echo "${{ env.HEAD_SHA }}" > shas.txt
+        echo "${{ env.BASE_SHA }}" >> shas.txt
+
+    - name: Upload SHAs
+      uses: actions/upload-artifact@v4
+      continue-on-error: true
+      id: artifact-upload-step
+      with:
+        name: dismiss-stale-approvals-shas
+        path: shas.txt
+
     - name: Check if diff has changed
       continue-on-error: true
       id: check
@@ -69,25 +83,24 @@ runs:
           $RANGE_DIFF"
         fi
 
+    - name: Construct dismissal reason
+      shell: bash
+      run: |
+        if [ "${{ env.NO_PREV_SHAS }}" == "1" ]; then
+          DETAILS="Could not find data on the previous version of this PR; see action logs at "
+        elif [ "${{ env.HAS_DIFF }}" != "0" ]; then
+          DETAILS="See the output of `git range-diff` at "
+        else
+          DETAILS="Failed to check if diff has changed; see action logs at "
+        fi
+        echo "REASON=Your organization requires reapproval when changes are made, so Graphite has dimissed approvals. ${DETAILS}${{ env.WORKFLOW_RUN_URL }}" >> $GITHUB_ENV
+
     - name: Dismiss approvals if diff has changed or if any prior step failed
-      if: job.steps.check.status == failure() || env.HAS_DIFF != '0'
+      if: env.HAS_DIFF != '0' || env.NO_PREV_SHAS == '1'
       # TODO: remove dry-run once ready for production
       uses: withgraphite/dismiss-all-approvals-js@dry-run
       # uses: withgraphite/dismiss-all-approvals-js@main
       with:
         github-token: ${{ inputs.github-token }}
-        reason: Your organization requires reapproval when changes are made, so Graphite has dimissed approvals. See the output of `git range-diff` at ${{ env.WORKFLOW_RUN_URL}}
+        reason: ${{ env.REASON }}
 
-    - name: Write SHAs to file
-      shell: bash
-      run: |
-        echo "${{ env.HEAD_SHA }}" > shas.txt
-        echo "${{ env.BASE_SHA }}" >> shas.txt
-
-    - name: Upload SHAs
-      uses: actions/upload-artifact@v4
-      continue-on-error: true
-      id: artifact-upload-step
-      with:
-        name: dismiss-stale-approvals-shas
-        path: shas.txt
