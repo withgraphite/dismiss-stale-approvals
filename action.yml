@@ -46,7 +46,7 @@ runs:
         git fetch -q origin --depth="${{ inputs.fetch-depth }}" "${{ env.PREV_HEAD_SHA }}"
         git fetch -q origin --depth="${{ inputs.fetch-depth }}" "${{ env.HEAD_SHA }}"
         RANGE_DIFF=$(git range-diff "${{ env.PREV_BASE_SHA }}".."${{ env.PREV_HEAD_SHA }}" "${{ env.BASE_SHA }}".."${{ env.HEAD_SHA }}")
-        echo ::notice:: $RANGE_DIFF"
+        echo ::notice:: "$RANGE_DIFF"
         echo "HAS_DIFF=$(echo $RANGE_DIFF | awk '{print $3}' | grep -q '^=$'; echo $?)" >> $GITHUB_ENV
 
     - name: Dismiss approvals if diff has changed or if any prior step failed
