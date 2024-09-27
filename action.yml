@@ -42,9 +42,9 @@ runs:
       run: |
         git init --bare bare.git
         cd bare.git
-        git remote add origin https://oauth2:${{ inputs.github-token }}@github.com/"${{ github.repository }}".git
-        git fetch origin --depth=${{ inputs.fetch-depth }} ${{ env.PREV_HEAD_SHA }}
-        git fetch origin --depth=${{ inputs.fetch-depth }} ${{ env.HEAD_SHA }}
+        git remote add origin https://oauth2:"${{ inputs.github-token }}"@github.com/"${{ github.repository }}".git
+        git fetch origin --depth="${{ inputs.fetch-depth }}" "${{ env.PREV_HEAD_SHA }}"
+        git fetch origin --depth="${{ inputs.fetch-depth }}" "${{ env.HEAD_SHA }}"
         echo "HAS_DIFF=$(git range-diff HEAD~3..HEAD feature-branch | cut -d' ' -f3 | grep -qv '^=$'; echo $?) >> $GITHUB_ENV
 
     - name: Dismiss approvals if diff has changed or if any prior step failed
