@@ -32,8 +32,10 @@ runs:
       shell: bash
       run: |
         latest_artifact.sh "${{ inputs.github-token }}" "${{ github.repository }}" "$(echo ${{github.ref_name}} | cut -d '/' -f 1)" "${{ github.head_ref }}" "${{ github.workflow }}" "dismiss-stale-approvals-shas"
-        echo "PREV_HEAD_SHA=$(head -n 1 shas.txt)" >> $GITHUB_ENV
-        echo "PREV_BASE_SHA=$(tail -n 1 shas.txt)" >> $GITHUB_ENV
+        if [ -f shas.txt ]; then
+          echo "PREV_HEAD_SHA=$(head -n 1 shas.txt)" >> $GITHUB_ENV
+          echo "PREV_BASE_SHA=$(tail -n 1 shas.txt)" >> $GITHUB_ENV
+        fi
       env:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
@@ -46,6 +48,11 @@ runs:
     - name: Check if diff has changed
       shell: bash
       run: |
+        if [ -z { env.PREV_HEAD_SHA } ] || [ -z { env.PREV_BASE_SHA } ]; then
+          echo ::notice:: "No previous SHAs found; behaving as if diff has changed"
+          exit 0
+        fi
+
         git init -q --bare bare.git
         cd bare.git
         git remote add origin https://oauth2:"${{ inputs.github-token }}"@github.com/"${{ github.repository }}".git

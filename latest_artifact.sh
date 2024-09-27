@@ -1,6 +1,7 @@
 #!/bin/sh
 # Adapted from: https://gist.github.com/Willsr71/e4884be88f98b4c298692975c0ec8edb
 
+
 github_token=$1
 # NOTE: repository is the full name, e.g. owner/repo
 repository=$2
@@ -11,10 +12,16 @@ artifact_name=$6
 
 echoerr() { echo "$@" 1>&2; }
 
-latest_workflow_id=$(curl -sS \
-    -H "Authorization: Bearer ${github_token}" \
-    https://api.github.com/repos/${repository}/actions/workflows \
-    | jq '.workflows[] | select(.name=="'${workflow_name}'").id')
+# Exit on error with a zero exit code, as we don't want to fail the workflow
+# The lack of file output will signal that there was no artifact to download
+trap 'exit 0'
+
+workflows=$(curl -sS \
+	-H "Authorization: Bearer ${github_token}" \
+	https://api.github.com/repos/${repository}/actions/workflows)
+latest_workflow_id=$(echo ${workflows} \
+	| jq '.workflows[] | select(.name=="'${workflow_name}'").id')
+
 echoerr "Latest workflow ID: ${latest_workflow_id}"
 
 workflow_runs=$(curl -sS \
@@ -24,10 +31,11 @@ latest_workflow_run_id=$(echo ${workflow_runs} \
 		| jq '([.workflow_runs[] | select(.pull_requests | any(.number == '${pr_number}'))] | max_by(.run_number)) | .id')
 echoerr "Latest workflow run ID: ${latest_workflow_run_id}"
 
-latest_artifact_id=$(curl -sS \
-    -H "Authorization: Bearer ${github_token}" \
-    https://api.github.com/repos/${repository}/actions/runs/${latest_workflow_run_id}/artifacts \
-    | jq '.artifacts[] | select(.name=="'${artifact_name}'").id')
+artifacts=$(curl -sS \
+	-H "Authorization: Bearer ${github_token}" \
+	https://api.github.com/repos/${repository}/actions/runs/${latest_workflow_run_id}/artifacts)
+latest_artifact_id=$(echo ${artifacts} \
+	| jq '.artifacts[] | select(.name=="'${artifact_name}'").id')
 echoerr "Latest artifact ID: ${latest_artifact_id}"
 
 curl -sSL -H "Accept: application/vnd.github+json" \
