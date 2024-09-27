@@ -7,6 +7,11 @@ inputs:
     description:
       'A GITHUB_TOKEN secret or PAT that has write access to the repository'
     required: true
+  fetch-depth:
+    default: 50
+    description:
+      'The maximum length of a branch from head to base that will be compared to the previous run. If the branch is longer than this number, reviews will always be dismissed.'
+    required: false
 
 
 runs:
@@ -25,8 +30,6 @@ runs:
       env:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
-    - name: Checkout code
-      uses: actions/checkout@v4
 
     - name: Read SHAs
       shell: bash
@@ -37,10 +40,19 @@ runs:
     - name: Check if diff has changed
       shell: bash
       run: |
-        echo "${{ env.HEAD_SHA }}"
-        echo "${{ env.BASE_SHA }}"
-        echo "${{ env.PREV_HEAD_SHA }}"
-        echo "${{ env.PREV_BASE_SHA }}"
+        git init --bare bare.git
+        cd bare.git
+        git remote add origin https://oauth2:${{ inputs.github-token }}@github.com/"${{ github.repository }}".git
+        git fetch origin --depth=${{ inputs.fetch-depth }} ${{ env.PREV_HEAD_SHA }}
+        git fetch origin --depth=${{ inputs.fetch-depth }} ${{ env.HEAD_SHA }}
+        echo "HAS_DIFF=$(git range-diff HEAD~3..HEAD feature-branch | cut -d' ' -f3 | grep -qv '^=$'; echo $?) >> $GITHUB_ENV
+
+    - name: Dismiss approvals if diff has changed or if any prior step failed
+      if: failure() || env.HAS_DIFF
+      uses: withgraphite/dismiss-all-approvals-js@main
+      with:
+        github-token: ${{ inputs.github-token }}
+        reason: This PR's diff has changed since it was approved
 
     - name: Write SHAs to file
       shell: bash
@@ -54,10 +66,3 @@ runs:
       with:
         name: dismiss-stale-approvals-shas
         path: shas.txt
-
-    - name: Dismiss approvals
-      uses: withgraphite/dismiss-all-approvals-js@main
-      with:
-        github-token: ${{ inputs.github-token }}
-        reason: This PR's diff has changed since it was approved
-
