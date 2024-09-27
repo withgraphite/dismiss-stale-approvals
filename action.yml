@@ -18,7 +18,7 @@ runs:
   using: "composite"
   steps:
     - name: Set Workflow Run URL as Output
-      id: set-url
+      shell: bash
       run: |
         REPO_URL="https://github.com/${{ github.repository }}"
         RUN_URL="${REPO_URL}/actions/runs/${{ github.run_id }}"
