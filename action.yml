@@ -49,7 +49,7 @@ runs:
         HAS_DIFF=$(echo $RANGE_DIFF | awk '{print $3}' | grep -q '^=$'; echo $?)
         echo HAS_DIFF="$HAS_DIFF" >> $GITHUB_ENV
         if [ "$HAS_DIFF" != "0" ]; then
-          echo ::notice:: "PR was modified:\
+          echo ::notice:: "PR was modified:
           $RANGE_DIFF"
         fi
 
