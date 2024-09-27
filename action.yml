@@ -64,7 +64,7 @@ runs:
       uses: withgraphite/dismiss-all-approvals-js@main
       with:
         github-token: ${{ inputs.github-token }}
-        reason: This PR's diff has changed since it was approved, so Graphite is dismissing approvals. See the output of `git range-diff` at ${{ env.WORKFLOW_RUN_URL}}
+        reason: This PR's diff changed since it was approved, so Graphite has dimissed approvals. See the output of `git range-diff` at ${{ env.WORKFLOW_RUN_URL}}
 
     - name: Write SHAs to file
       shell: bash
