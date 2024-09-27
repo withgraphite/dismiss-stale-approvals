@@ -49,7 +49,8 @@ runs:
         HAS_DIFF=$(echo $RANGE_DIFF | awk '{print $3}' | grep -q '^=$'; echo $?)
         echo HAS_DIFF="$HAS_DIFF" >> $GITHUB_ENV
         if [ "$HAS_DIFF" != "0" ]; then
-          echo ::notice:: "PR was modified:\n$RANGE_DIFF"
+          echo ::notice:: "PR was modified:\
+          $RANGE_DIFF"
         fi
 
     - name: Dismiss approvals if diff has changed or if any prior step failed
