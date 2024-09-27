@@ -50,6 +50,7 @@ runs:
       run: |
         if [ -z ${{ env.PREV_HEAD_SHA }} ] || [ -z ${{ env.PREV_BASE_SHA }} ]; then
           echo ::notice:: "No previous SHAs found; behaving as if diff has changed"
+          echo HAS_DIFF="1" >> $GITHUB_ENV
           exit 0
         fi
 
