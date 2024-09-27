@@ -58,8 +58,6 @@ runs:
       with:
         github-token: ${{ inputs.github-token }}
         reason: This PR's diff has changed since it was approved
-      run: |
-        echo "::notice:: Dismissing approvals"
 
     - name: Write SHAs to file
       shell: bash
