@@ -17,7 +17,8 @@ workflows=$(curl -sS \
 	https://api.github.com/repos/${repository}/actions/workflows)
 latest_workflow_id=$(echo ${workflows} \
 	| jq '.workflows[] | select(.name=="'${workflow_name}'").id')
-if [ "${latest_workflow_id}" == "null" ]; then
+
+if [ "${latest_workflow_id}" = "null" ]; then
   echoerr "No workflow found with name ${workflow_name}"
   exit 0
 fi
@@ -28,7 +29,8 @@ workflow_runs=$(curl -sS \
 		https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name})
 latest_workflow_run_id=$(echo ${workflow_runs} \
 		| jq '([.workflow_runs[] | select(.pull_requests | any(.number == '${pr_number}'))] | max_by(.run_number)) | .id')
-if [ "${latest_workflow_run_id}" == "null" ]; then
+
+if [ "${latest_workflow_run_id}" = "null" ]; then
   echoerr "No successful workflow run found for PR ${pr_number} on branch ${branch_name}"
   exit 0
 fi
