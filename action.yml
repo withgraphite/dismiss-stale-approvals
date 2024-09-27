@@ -21,8 +21,8 @@ runs:
       shell: bash
       run: |
         REPO_URL="https://github.com/${{ github.repository }}"
-        RUN_URL="${REPO_URL}/actions/runs/${{ github.run_id }}"
-        echo WORKFLOW_RUN_URL=${RUN_URL} >> $GITHUB_OUTPUT
+        RUN_URL="$REPO_URL/actions/runs/${{ github.run_id }}"
+        echo WORKFLOW_RUN_URL="$RUN_URL" >> $GITHUB_OUTPUT
 
     - name: Set GitHub path
       shell: bash
