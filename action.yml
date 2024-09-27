@@ -17,6 +17,13 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Set Workflow Run URL as Output
+      id: set-url
+      run: |
+        REPO_URL="https://github.com/${{ github.repository }}"
+        RUN_URL="${REPO_URL}/actions/runs/${{ github.run_id }}"
+        echo WORKFLOW_RUN_URL=${RUN_URL} >> $GITHUB_OUTPUT
+
     - name: Set GitHub path
       shell: bash
       run: echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
@@ -29,7 +36,6 @@ runs:
         echo "PREV_BASE_SHA=$(tail -n 1 shas.txt)" >> $GITHUB_ENV
       env:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
-
 
     - name: Read SHAs
       shell: bash
@@ -58,7 +64,7 @@ runs:
       uses: withgraphite/dismiss-all-approvals-js@main
       with:
         github-token: ${{ inputs.github-token }}
-        reason: This PR's diff has changed since it was approved
+        reason: This PR's diff has changed since it was approved, so Graphite is dismissing approvals. See the output of `git range-diff` at ${{ env.WORKFLOW_RUN_URL}}
 
     - name: Write SHAs to file
       shell: bash
