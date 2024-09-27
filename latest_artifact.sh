@@ -41,7 +41,7 @@ artifacts=$(curl -sS \
 	https://api.github.com/repos/${repository}/actions/runs/${latest_workflow_run_id}/artifacts)
 latest_artifact_id=$(echo ${artifacts} \
 	| jq '.artifacts[] | select(.name=="'${artifact_name}'").id')
-if [ "${latest_artifact_id}" == "null" ]; then
+if [ "${latest_artifact_id}" = "null" ]; then
   echoerr "No artifacts found for workflow run ${latest_workflow_run_id}"
   exit 0
 fi
