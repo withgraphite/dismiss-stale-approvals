@@ -12,10 +12,6 @@ artifact_name=$6
 
 echoerr() { echo "$@" 1>&2; }
 
-# Exit on error with a zero exit code, as we don't want to fail the workflow
-# The lack of file output will signal that there was no artifact to download
-trap 'exit 0'
-
 workflows=$(curl -sS \
 	-H "Authorization: Bearer ${github_token}" \
 	https://api.github.com/repos/${repository}/actions/workflows)
