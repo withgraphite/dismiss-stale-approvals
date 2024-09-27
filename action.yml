@@ -71,7 +71,9 @@ runs:
 
     - name: Dismiss approvals if diff has changed or if any prior step failed
       if: job.steps.check.status == failure() || env.HAS_DIFF != '0'
-      uses: withgraphite/dismiss-all-approvals-js@main
+      # TODO: remove dry-run once ready for production
+      uses: withgraphite/dismiss-all-approvals-js@dry-run
+      # uses: withgraphite/dismiss-all-approvals-js@main
       with:
         github-token: ${{ inputs.github-token }}
         reason: Your organization requires reapproval when changes are made, so Graphite has dimissed approvals. See the output of `git range-diff` at ${{ env.WORKFLOW_RUN_URL}}
