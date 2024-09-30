@@ -89,7 +89,7 @@ runs:
         if [ "${{ env.NO_PREV_SHAS }}" == "1" ]; then
           DETAILS="Could not find data on the previous version of this PR; see action logs at "
         elif [ "${{ env.HAS_DIFF }}" != "0" ]; then
-          DETAILS="See the output of `git range-diff` at "
+          DETAILS='See the output of `git range-diff` at '
         else
           DETAILS="Failed to check if diff has changed; see action logs at "
         fi
