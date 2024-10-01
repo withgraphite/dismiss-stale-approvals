@@ -16,7 +16,13 @@ workflows=$(curl -sS \
 	-H "Authorization: Bearer ${github_token}" \
 	https://api.github.com/repos/${repository}/actions/workflows)
 latest_workflow_id=$(echo ${workflows} \
-	| jq '.workflows[] | select(.name=="'${workflow_name}'").id')
+	| jq '.workflows[] | select(.name=="'${workflow_name}'").id' || echo "ERROR")
+
+if [ "${latest_workflow_id}" = "ERROR" ]; then
+	echoerr 'Failed to parse GitHub response with jq:'
+	echoerr "${workflows}"
+	exit 0
+fi
 
 if [ "${latest_workflow_id}" = "null" ]; then
   echoerr "No workflow found with name ${workflow_name}"
@@ -28,7 +34,14 @@ workflow_runs=$(curl -sS \
     -H "Authorization: Bearer ${github_token}" \
 		https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name})
 latest_workflow_run_id=$(echo ${workflow_runs} \
-		| jq '([.workflow_runs[] | select(.pull_requests | any(.number == '${pr_number}'))] | max_by(.run_number)) | .id')
+		| jq '([.workflow_runs[] | select(.pull_requests | any(.number == '${pr_number}'))] | max_by(.run_number)) | .id' || echo "ERROR")
+
+
+if [ "${latest_workflow_run_id}" = "ERROR" ]; then
+	echoerr 'Failed to parse GitHub response with jq:'
+	echoerr "${workflow_runs}"
+	exit 0
+fi
 
 if [ "${latest_workflow_run_id}" = "null" ]; then
   echoerr "No successful workflow run found for PR ${pr_number} on branch ${branch_name}"
@@ -40,7 +53,14 @@ artifacts=$(curl -sS \
 	-H "Authorization: Bearer ${github_token}" \
 	https://api.github.com/repos/${repository}/actions/runs/${latest_workflow_run_id}/artifacts)
 latest_artifact_id=$(echo ${artifacts} \
-	| jq '.artifacts[] | select(.name=="'${artifact_name}'").id')
+	| jq '.artifacts[] | select(.name=="'${artifact_name}'").id' || echo "ERROR")
+
+if [ "${latest_artifact_id}" = "ERROR" ]; then
+	echoerr 'Failed to parse GitHub response with jq:'
+	echoerr "${artifacts}"
+	exit 0
+fi
+
 if [ "${latest_artifact_id}" = "null" ]; then
   echoerr "No artifacts found for workflow run ${latest_workflow_run_id}"
   exit 0
