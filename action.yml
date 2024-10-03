@@ -79,7 +79,7 @@ runs:
         MERGE_BASE=$(git merge-base "${{ env.BASE_SHA }}" "${{ env.HEAD_SHA }}")
         echo "Merge bases: $PREV_MERGE_BASE $MERGE_BASE"
 
-        RANGE_DIFF_ARGS="$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}"
+        RANGE_DIFF_ARGS="$PREV_MERGE_BASE..${{ env.PREV_HEAD_SHA }} $MERGE_BASE..${{ env.HEAD_SHA }}"
         RANGE_DIFF=$(git range-diff "$RANGE_DIFF_ARGS")
         HAS_DIFF=$(echo "$RANGE_DIFF" | awk '{print $3}' | grep -q '^=$'; echo $?)
         echo HAS_DIFF="$HAS_DIFF" >> $GITHUB_ENV
