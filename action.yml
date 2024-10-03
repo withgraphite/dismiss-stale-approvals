@@ -102,9 +102,7 @@ runs:
 
     - name: Dismiss approvals if diff has changed or if any prior step failed
       if: env.MATCH == '0' || env.NO_PREV_SHAS == '1'
-      # TODO: remove dry-run once ready for production
-      uses: withgraphite/dismiss-all-approvals-js@dry-run
-      # uses: withgraphite/dismiss-all-approvals-js@main
+      uses: withgraphite/dismiss-all-approvals-js@main
       with:
         github-token: ${{ inputs.github-token }}
         reason: ${{ env.REASON }}
