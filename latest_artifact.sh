@@ -12,14 +12,14 @@ artifact_name=$6
 
 echoerr() { echo "$@" 1>&2; }
 
-workflows=$(curl -sS \
-	-H "Authorization: Bearer ${github_token}" \
-	https://api.github.com/repos/${repository}/actions/workflows)
+workflows_url="https://api.github.com/repos/${repository}/actions/workflows"
+workflows=$(curl -sS -H "Authorization: Bearer ${github_token}" "${workflows_url}")
 latest_workflow_id=$(echo ${workflows} \
 	| jq '.workflows[] | select(.name=="'${workflow_name}'").id' || echo "ERROR")
 
 if [ "${latest_workflow_id}" = "ERROR" ]; then
 	echoerr 'Failed to parse GitHub response with jq:'
+	echoerr "(url: ${workflows_url})"
 	echoerr "${workflows}"
 	exit 0
 fi
@@ -30,15 +30,15 @@ if [ "${latest_workflow_id}" = "null" ]; then
 fi
 echoerr "Latest workflow ID: ${latest_workflow_id}"
 
-workflow_runs=$(curl -sS \
-    -H "Authorization: Bearer ${github_token}" \
-		https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name})
+workflow_runs_url="https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name}"
+workflow_runs=$(curl -sS -H "Authorization: Bearer ${github_token}" "${workflow_runs_url}")
 latest_workflow_run_id=$(echo ${workflow_runs} \
 		| jq '([.workflow_runs[] | select(.pull_requests | any(.number == '${pr_number}'))] | max_by(.run_number)) | .id' || echo "ERROR")
 
 
 if [ "${latest_workflow_run_id}" = "ERROR" ]; then
 	echoerr 'Failed to parse GitHub response with jq:'
+	echoerr "(url: ${workflow_runs_url})"
 	echoerr "${workflow_runs}"
 	exit 0
 fi
@@ -49,14 +49,14 @@ if [ "${latest_workflow_run_id}" = "null" ]; then
 fi
 echoerr "Latest workflow run ID: ${latest_workflow_run_id}"
 
-artifacts=$(curl -sS \
-	-H "Authorization: Bearer ${github_token}" \
-	https://api.github.com/repos/${repository}/actions/runs/${latest_workflow_run_id}/artifacts)
+artifacts_url="https://api.github.com/repos/${repository}/actions/runs/${latest_workflow_run_id}/artifacts"
+artifacts=$(curl -sS -H "Authorization: Bearer ${github_token}" "${artifacts_url}")
 latest_artifact_id=$(echo ${artifacts} \
 	| jq '.artifacts[] | select(.name=="'${artifact_name}'").id' || echo "ERROR")
 
 if [ "${latest_artifact_id}" = "ERROR" ]; then
 	echoerr 'Failed to parse GitHub response with jq:'
+	echoerr "(url: ${artifacts_url})"
 	echoerr "${artifacts}"
 	exit 0
 fi
