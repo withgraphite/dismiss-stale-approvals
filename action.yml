@@ -8,7 +8,7 @@ inputs:
       'A GITHUB_TOKEN secret or PAT that has write access to the repository'
     required: true
   fetch-depth:
-    default: 50
+    default: 250
     description:
       'The maximum length of a branch from head to base that will be compared to the previous run. If the branch is longer than this number, reviews will always be dismissed.'
     required: false
@@ -73,9 +73,13 @@ runs:
         git init -q --bare bare.git
         cd bare.git
         git remote add origin https://oauth2:"${{ inputs.github-token }}"@github.com/"${{ github.repository }}".git
-        git fetch -q origin --depth="${{ inputs.fetch-depth }}" "${{ env.PREV_HEAD_SHA }}"
-        git fetch -q origin --depth="${{ inputs.fetch-depth }}" "${{ env.HEAD_SHA }}"
-        RANGE_DIFF=$(git range-diff "${{ env.PREV_BASE_SHA }}".."${{ env.PREV_HEAD_SHA }}" "${{ env.BASE_SHA }}".."${{ env.HEAD_SHA }}")
+        git fetch -q origin --depth="${{ inputs.fetch-depth }}" "${{ env.PREV_BASE_SHA }}" "${{ env.PREV_HEAD_SHA }}" "${{ env.BASE_SHA }}" "${{ env.HEAD_SHA }}"
+
+        PREV_MERGE_BASE=$(git merge-base "${{ env.PREV_BASE_SHA }}" "${{ env.PREV_HEAD_SHA }}")
+        MERGE_BASE=$(git merge-base "${{ env.BASE_SHA }}" "${{ env.HEAD_SHA }}")
+        echo "Merge bases: $PREV_MERGE_BASE $MERGE_BASE"
+
+        RANGE_DIFF=$(git range-diff "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")
         HAS_DIFF=$(echo $RANGE_DIFF | awk '{print $3}' | grep -q '^=$'; echo $?)
         echo HAS_DIFF="$HAS_DIFF" >> $GITHUB_ENV
         if [ "$HAS_DIFF" != "0" ]; then
