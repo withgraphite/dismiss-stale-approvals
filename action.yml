@@ -85,7 +85,7 @@ runs:
         if [ "$MATCH" == "0" ]; then
           # Run git range-diff again with colors to make it easier to read
           echo ::notice:: "PR was modified:
-          $(git range-diff --color=always "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")"
+        $(git range-diff --color=always "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")"
         fi
 
     - name: Construct dismissal reason
