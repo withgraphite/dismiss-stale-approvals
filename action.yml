@@ -79,14 +79,13 @@ runs:
         MERGE_BASE=$(git merge-base "${{ env.BASE_SHA }}" "${{ env.HEAD_SHA }}")
         echo "Merge bases: $PREV_MERGE_BASE $MERGE_BASE"
 
-        RANGE_DIFF_ARGS="$PREV_MERGE_BASE..${{ env.PREV_HEAD_SHA }} $MERGE_BASE..${{ env.HEAD_SHA }}"
-        RANGE_DIFF=$(git range-diff "$RANGE_DIFF_ARGS")
+        RANGE_DIFF=$(git range-diff "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")
         HAS_DIFF=$(echo "$RANGE_DIFF" | awk '{print $3}' | grep -q '^=$'; echo $?)
         echo HAS_DIFF="$HAS_DIFF" >> $GITHUB_ENV
         if [ "$HAS_DIFF" != "0" ]; then
           # Run git range-diff again with colors to make it easier to read
           echo ::notice:: "PR was modified:
-          $(git range-diff --color=always "$RANGE_DIFF_ARGS")"
+          $(git range-diff --color=always "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")"
         fi
 
     - name: Construct dismissal reason
