@@ -98,7 +98,7 @@ runs:
         else
           DETAILS="Failed to check if diff has changed; see action logs at "
         fi
-        echo "REASON=Your organization requires reapproval when changes are made, so Graphite has dimissed approvals. ${DETAILS}${{ env.WORKFLOW_RUN_URL }}" >> $GITHUB_ENV
+        echo "REASON=Your organization requires reapproval when changes are made, so Graphite has dismissed approvals. ${DETAILS}${{ env.WORKFLOW_RUN_URL }}" >> $GITHUB_ENV
 
     - name: Dismiss approvals if diff has changed or if any prior step failed
       if: env.MATCH == '0' || env.NO_PREV_SHAS == '1'
