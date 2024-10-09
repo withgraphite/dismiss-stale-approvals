@@ -12,6 +12,8 @@ You can make the check required with either:
 - Branch protection rules ([see here](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule))
 - Rulesets ([see here](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository))
 
+See the [example repository](https://github.com/withgraphite/dismiss-stale-approvals-example-repo) for a complete example.
+
 ```yaml
 name: Dismiss stale pull request approvals
 
