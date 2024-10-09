@@ -5,8 +5,15 @@ Unlike the built in GitHub protection, this action will compare the `git range-d
 
 ## Usage
 
+1. Add the below worklow to your repository's `.github/workflows` directory.
+2. Ensure that the "Dismiss stale pull request approvals" check is required for pull requests, which will ensure that PRs cannot be merged until the action has run successfully.
+
+You can make the check required with either:
+- Branch protection rules ([see here](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule))
+- Rulesets ([see here](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository))
+
 ```yaml
-name: tests
+name: Dismiss stale pull request approvals
 
 on:
   pull_request:
