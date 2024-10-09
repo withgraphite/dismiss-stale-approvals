@@ -11,7 +11,6 @@ name: tests
 on:
   pull_request:
     types: [
-        # Default pull_request trigger types.
         opened,
         synchronize,
         reopened,
