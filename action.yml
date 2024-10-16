@@ -12,7 +12,10 @@ inputs:
     description:
       'The maximum length of a branch from head to base that will be compared to the previous run. If the branch is longer than this number, reviews will always be dismissed.'
     required: false
-
+  dry-run:
+    description: 'Comment on the PR instead of dismissing approvals.'
+    required: false
+    default: false
 
 runs:
   using: "composite"
@@ -105,5 +108,6 @@ runs:
       uses: withgraphite/dismiss-all-approvals-js@main
       with:
         github-token: ${{ inputs.github-token }}
+        dry-run: ${{ inputs.dry-run }}
         reason: ${{ env.REASON }}
 
