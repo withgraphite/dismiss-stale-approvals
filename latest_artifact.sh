@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Adapted from: https://gist.github.com/Willsr71/e4884be88f98b4c298692975c0ec8edb
 
 
@@ -34,12 +34,9 @@ echoerr "Latest workflow ID: ${latest_workflow_id}"
 
 workflow_runs_url="https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name}"
 workflow_runs=$(curl -sS -H "Authorization: Bearer ${github_token}" "${workflow_runs_url}")
-latest_workflow_run_id=$(\
-	echo ${workflow_runs} \
-	| jq \
+latest_workflow_run_id=$(jq \
 		--argjson pr_number "${pr_number}" \
-		'([.workflow_runs[] | select(.pull_requests | any(.number == $pr_number))] | max_by(.run_number)) | .id' || echo "ERROR")
-
+		'([.workflow_runs[] | select(.pull_requests | any(.number == $pr_number))] | max_by(.run_number)) | .id' <<< ${workflow_runs} || echo "ERROR")
 
 if [ "${latest_workflow_run_id}" = "ERROR" ]; then
 	echoerr 'Failed to parse GitHub response with jq:'
