@@ -15,7 +15,9 @@ echoerr() { echo "$@" 1>&2; }
 workflows_url="https://api.github.com/repos/${repository}/actions/workflows"
 workflows=$(curl -sS -H "Authorization: Bearer ${github_token}" "${workflows_url}")
 latest_workflow_id=$(echo ${workflows} \
-	| jq '.workflows[] | select(.name=="'${workflow_name}'").id' || echo "ERROR")
+	| jq \
+		--arg workflow_name "$workflow_name" \
+		'.workflows[] | select(.name==$workflow_name).id' || echo "ERROR")
 
 if [ "${latest_workflow_id}" = "ERROR" ]; then
 	echoerr 'Failed to parse GitHub response with jq:'
@@ -32,8 +34,9 @@ echoerr "Latest workflow ID: ${latest_workflow_id}"
 
 workflow_runs_url="https://api.github.com/repos/${repository}/actions/workflows/${latest_workflow_id}/runs?status=success&branch=${branch_name}"
 workflow_runs=$(curl -sS -H "Authorization: Bearer ${github_token}" "${workflow_runs_url}")
-latest_workflow_run_id=$(jq '([.workflow_runs[] | select(.pull_requests | any(.number == '${pr_number}'))] | max_by(.run_number)) | .id' <<< ${workflow_runs} || echo "ERROR")
-
+latest_workflow_run_id=$(jq \
+		--argjson pr_number "${pr_number}" \
+		'([.workflow_runs[] | select(.pull_requests | any(.number == $pr_number))] | max_by(.run_number)) | .id' <<< ${workflow_runs} || echo "ERROR")
 
 if [ "${latest_workflow_run_id}" = "ERROR" ]; then
 	echoerr 'Failed to parse GitHub response with jq:'
@@ -51,7 +54,9 @@ echoerr "Latest workflow run ID: ${latest_workflow_run_id}"
 artifacts_url="https://api.github.com/repos/${repository}/actions/runs/${latest_workflow_run_id}/artifacts"
 artifacts=$(curl -sS -H "Authorization: Bearer ${github_token}" "${artifacts_url}")
 latest_artifact_id=$(echo ${artifacts} \
-	| jq '.artifacts[] | select(.name=="'${artifact_name}'").id' || echo "ERROR")
+	| jq \
+		--arg artifact_name "$artifact_name" \
+		'.artifacts[] | select(.name==$artifact_name).id' || echo "ERROR")
 
 if [ "${latest_artifact_id}" = "ERROR" ]; then
 	echoerr 'Failed to parse GitHub response with jq:'
