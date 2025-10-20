@@ -5,7 +5,7 @@ Unlike the built in GitHub protection, this action will compare the `git range-d
 
 ## Usage
 
-1. Add the below worklow to your repository's `.github/workflows` directory.
+1. Add the below workflow to your repository's `.github/workflows` directory.
 2. Ensure that this GitHub Action is required for pull requests, which will ensure that PRs cannot be merged until the action has run successfully.
 ![Screenshot of selecting the `dismiss-stale-approvals` action as a required check](./images/required-status-check.png)
 
