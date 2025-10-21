@@ -34,12 +34,13 @@ runs:
     - name: Download SHAs from last run
       shell: bash
       run: |
-        latest_artifact.sh "${{ inputs.github-token }}" "${{ github.repository }}" "${{ github.event.pull_request.number }}" "${{ github.head_ref }}" "${{ github.workflow }}" "dismiss-stale-approvals-shas" || true
+        latest_artifact.sh "${{ github.repository }}" "${{ github.event.pull_request.number }}" "${{ github.head_ref }}" "${{ github.workflow }}" "dismiss-stale-approvals-shas" || true
         if [ -f shas.txt ]; then
           echo "PREV_HEAD_SHA=$(head -n 1 shas.txt)" >> $GITHUB_ENV
           echo "PREV_BASE_SHA=$(tail -n 1 shas.txt)" >> $GITHUB_ENV
         fi
       env:
+        GH_TOKEN: ${{ inputs.github-token }}
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Read SHAs
