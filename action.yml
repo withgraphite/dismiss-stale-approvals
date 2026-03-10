@@ -87,14 +87,14 @@ runs:
         fi
 
     - name: Write SHAs to file
-      if: steps.check.outcome == 'success'
+      if: env.MATCH != ''
       shell: bash
       run: |
         echo "${{ env.HEAD_SHA }}" > shas.txt
         echo "${{ env.BASE_SHA }}" >> shas.txt
 
     - name: Upload SHAs
-      if: steps.check.outcome == 'success'
+      if: env.MATCH != ''
       uses: actions/upload-artifact@v4
       continue-on-error: true
       id: artifact-upload-step
