@@ -49,28 +49,14 @@ runs:
        echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
        echo "BASE_SHA=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
 
-    - name: Write SHAs to file
-      shell: bash
-      run: |
-        echo "${{ env.HEAD_SHA }}" > shas.txt
-        echo "${{ env.BASE_SHA }}" >> shas.txt
-
-    - name: Upload SHAs
-      uses: actions/upload-artifact@v4
-      continue-on-error: true
-      id: artifact-upload-step
-      with:
-        name: dismiss-stale-approvals-shas
-        path: shas.txt
-
     - name: Check if diff has changed
       continue-on-error: true
       id: check
       shell: bash
       run: |
-        if [ -z ${{ env.PREV_HEAD_SHA }} ] || [ -z ${{ env.PREV_BASE_SHA }} ]; then
+        if [ -z "${{ env.PREV_HEAD_SHA }}" ] || [ -z "${{ env.PREV_BASE_SHA }}" ]; then
           echo ::notice:: "No previous SHAs found; behaving as if diff has changed"
-          echo MATCH="0" >> $GITHUB_ENV
+          echo "MATCH=-1" >> $GITHUB_ENV
           exit 0
         fi
 
@@ -84,31 +70,47 @@ runs:
         echo "Merge bases: $PREV_MERGE_BASE $MERGE_BASE"
 
         RANGE_DIFF=$(git range-diff "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")
-        MATCH=$(echo "$RANGE_DIFF" | awk '{print $3}' | grep -vq '^=$'; echo $?)
-        echo MATCH="$MATCH" >> $GITHUB_ENV
-        if [ "$MATCH" == "0" ]; then
-          # Run git range-diff again with colors to make it easier to read
+        HAS_CHANGES=$(echo "$RANGE_DIFF" | awk '{print $3}' | grep -vq '^=$'; echo $?)
+
+        if [ "$HAS_CHANGES" == "0" ]; then
+          echo "MATCH=0" >> $GITHUB_ENV
           echo ::notice:: "PR was modified:
         $(git range-diff --color=always "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")"
         else
           echo "PR was not modified, range diff for debugging:"
           echo "$RANGE_DIFF"
+          echo "MATCH=1" >> $GITHUB_ENV
         fi
 
-    - name: Construct dismissal reason
+    - name: Write SHAs to file
+      if: env.MATCH != ''
       shell: bash
       run: |
-        if [ "${{ env.NO_PREV_SHAS }}" == "1" ]; then
-          DETAILS="Could not find data on the previous version of this PR; see action logs at "
-        elif [ "${{ env.MATCH }}" == "0" ]; then
+        echo "${{ env.HEAD_SHA }}" > shas.txt
+        echo "${{ env.BASE_SHA }}" >> shas.txt
+
+    - name: Upload SHAs
+      if: env.MATCH != ''
+      uses: actions/upload-artifact@v4
+      continue-on-error: true
+      id: artifact-upload-step
+      with:
+        name: dismiss-stale-approvals-shas
+        path: shas.txt
+
+    - name: Construct dismissal reason
+      if: env.MATCH != '1'
+      shell: bash
+      run: |
+        if [ "${{ env.MATCH }}" == "0" ]; then
           DETAILS='See the output of `git range-diff` at '
         else
           DETAILS="Failed to check if diff has changed; see action logs at "
         fi
         echo "REASON=Your organization requires reapproval when changes are made, so Graphite has dismissed approvals. ${DETAILS}${{ env.WORKFLOW_RUN_URL }}" >> $GITHUB_ENV
 
-    - name: Dismiss approvals if diff has changed or if any prior step failed
-      if: env.MATCH == '0' || env.NO_PREV_SHAS == '1'
+    - name: Dismiss approvals unless diff is proven unchanged
+      if: env.MATCH != '1'
       uses: withgraphite/dismiss-all-approvals-js@main
       with:
         github-token: ${{ inputs.github-token }}
