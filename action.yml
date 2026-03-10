@@ -57,6 +57,7 @@ runs:
         if [ -z "${{ env.PREV_HEAD_SHA }}" ] || [ -z "${{ env.PREV_BASE_SHA }}" ]; then
           echo ::notice:: "No previous SHAs found; behaving as if diff has changed"
           echo "MATCH=0" >> $GITHUB_ENV
+          echo "NO_BASELINE=1" >> $GITHUB_ENV
           exit 0
         fi
 
@@ -102,7 +103,9 @@ runs:
       if: env.MATCH != '1'
       shell: bash
       run: |
-        if [ "${{ env.MATCH }}" == "0" ]; then
+        if [ "${{ env.NO_BASELINE }}" == "1" ]; then
+          DETAILS="No baseline data available; see action logs at "
+        elif [ "${{ env.MATCH }}" == "0" ]; then
           DETAILS='See the output of `git range-diff` at '
         else
           DETAILS="Failed to check if diff has changed; see action logs at "
