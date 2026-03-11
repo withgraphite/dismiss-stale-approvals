@@ -105,7 +105,7 @@ runs:
         if [ "${{ env.MATCH }}" == "0" ]; then
           DETAILS='See the output of `git range-diff` at '
         elif [ "${{ env.MATCH }}" == "-1" ]; then
-          DETAILS="No previous SHAs found; treated as if diff has changed"
+          DETAILS="No previous SHAs found; treated as if diff has changed. See action logs at "
         else
           DETAILS="Failed to check if diff has changed; see action logs at "
         fi
