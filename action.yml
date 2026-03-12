@@ -49,28 +49,16 @@ runs:
        echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
        echo "BASE_SHA=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
 
-    - name: Write SHAs to file
-      shell: bash
-      run: |
-        echo "${{ env.HEAD_SHA }}" > shas.txt
-        echo "${{ env.BASE_SHA }}" >> shas.txt
-
-    - name: Upload SHAs
-      uses: actions/upload-artifact@v4
-      continue-on-error: true
-      id: artifact-upload-step
-      with:
-        name: dismiss-stale-approvals-shas
-        path: shas.txt
-
     - name: Check if diff has changed
       continue-on-error: true
       id: check
       shell: bash
       run: |
-        if [ -z ${{ env.PREV_HEAD_SHA }} ] || [ -z ${{ env.PREV_BASE_SHA }} ]; then
+        # Default to dismissal unless we complete a successful, unchanged comparison.
+        echo MATCH="0" >> "$GITHUB_ENV"
+
+        if [ -z "${{ env.PREV_HEAD_SHA }}" ] || [ -z "${{ env.PREV_BASE_SHA }}" ]; then
           echo ::notice:: "No previous SHAs found; behaving as if diff has changed"
-          echo MATCH="0" >> $GITHUB_ENV
           exit 0
         fi
 
@@ -84,16 +72,32 @@ runs:
         echo "Merge bases: $PREV_MERGE_BASE $MERGE_BASE"
 
         RANGE_DIFF=$(git range-diff "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")
-        MATCH=$(echo "$RANGE_DIFF" | awk '{print $3}' | grep -vq '^=$'; echo $?)
-        echo MATCH="$MATCH" >> $GITHUB_ENV
-        if [ "$MATCH" == "0" ]; then
+        if echo "$RANGE_DIFF" | awk '{print $3}' | grep -vq '^=$'; then
           # Run git range-diff again with colors to make it easier to read
           echo ::notice:: "PR was modified:
         $(git range-diff --color=always "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")"
         else
+          # Complete successful comparison with no changes; do not dismiss.
+          echo MATCH="1" >> "$GITHUB_ENV"
           echo "PR was not modified, range diff for debugging:"
           echo "$RANGE_DIFF"
         fi
+
+    - name: Write SHAs to file
+      if: steps.check.outcome == 'success'
+      shell: bash
+      run: |
+        echo "${{ env.HEAD_SHA }}" > shas.txt
+        echo "${{ env.BASE_SHA }}" >> shas.txt
+
+    - name: Upload SHAs
+      if: steps.check.outcome == 'success'
+      uses: actions/upload-artifact@v4
+      continue-on-error: true
+      id: artifact-upload-step
+      with:
+        name: dismiss-stale-approvals-shas
+        path: shas.txt
 
     - name: Construct dismissal reason
       shell: bash
