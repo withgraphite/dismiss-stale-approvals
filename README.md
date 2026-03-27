@@ -41,3 +41,11 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+## Issues and contributions
+
+We (the Graphite team) have limited staffing in this area (mainly due to the need for DSA being a relatively small number of customers), which is why the action is OSS in the first place. It was an issue an enterprise customer asked us for input on while trialing so we created it as the simplest possible solution for the problem as a proof-of-concept. We don't expect it to solve the problem for every single Graphite customer exactly as implemented, which is why some of our other larger customers have forked the repo for their desired use.
+
+Feel free to fork to fit your exact use case, and we'd love back-contributions if you feel they'd be useful for others. Keep in mind that a change may work best as an optional configuration for the action, depending on exactly what the change is, of course.
+
+If we don't respond on GitHub immediately to an issue or PR, feel free to bring it to our attention in our [Community Slack server](community.graphite.com).
