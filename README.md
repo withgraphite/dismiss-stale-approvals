@@ -52,4 +52,4 @@ If we don't respond on GitHub immediately to an issue or PR, feel free to bring 
 
 ## Lack of license
 
-This repository is public source, but protected by copyright per GitHub defaults (see here). Graphite customers have express permission to use this action or a fork in their repositories by default. 
+This repository is public source, but protected by copyright per GitHub defaults ([see here](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository#choosing-the-right-license)). Graphite customers have express permission to use this action or a fork in their repositories by default. 
