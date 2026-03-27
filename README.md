@@ -49,3 +49,7 @@ We (the Graphite team) have limited staffing in this area (mainly due to the nee
 Feel free to fork to fit your exact use case, and we'd love back-contributions if you feel they'd be useful for others. Keep in mind that a change may work best as an optional configuration for the action, depending on exactly what the change is, of course.
 
 If we don't respond on GitHub immediately to an issue or PR, feel free to bring it to our attention in our [Community Slack server](community.graphite.com).
+
+## Lack of license
+
+This repository is public source, but protected by copyright per GitHub defaults (see here). Graphite customers have express permission to use this action or a fork in their repositories by default. 
