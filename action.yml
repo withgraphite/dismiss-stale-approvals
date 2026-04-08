@@ -96,6 +96,34 @@ runs:
 
         RANGE_DIFF=$(git range-diff "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")
         MATCH=$(echo "$RANGE_DIFF" | awk '{print $3}' | grep -vq '^=$'; echo $?)
+
+        # If diff changed, check if the only changes are new empty commits (e.g. pushed to re-trigger CI)
+        if [ "$MATCH" == "0" ]; then
+          ALL_EMPTY=1
+          while IFS= read -r line; do
+            status=$(echo "$line" | awk '{print $3}')
+            if [ "$status" != "=" ]; then
+              if [ "$status" == ">" ]; then
+                # New commit in the updated range - check if it has any file changes
+                sha=$(echo "$line" | awk '{print $5}')
+                if git diff-tree --no-commit-id -r "$sha" | grep -q .; then
+                  ALL_EMPTY=0
+                  break
+                fi
+              else
+                # Modified or removed commit - this is a real change
+                ALL_EMPTY=0
+                break
+              fi
+            fi
+          done <<< "$RANGE_DIFF"
+
+          if [ "$ALL_EMPTY" == "1" ]; then
+            echo ::notice:: "PR changes are only empty commits; not dismissing approvals"
+            MATCH=1
+          fi
+        fi
+
         echo MATCH="$MATCH" >> $GITHUB_ENV
         if [ "$MATCH" == "0" ]; then
           # Run git range-diff again with colors to make it easier to read
