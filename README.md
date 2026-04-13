@@ -42,6 +42,48 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+## Custom filter command
+
+Use the `filter-command` input to run a custom command when changes are detected. The command receives the `git range-diff` output on stdin and via the `DSA_RANGE_DIFF` environment variable. Additional env vars (`DSA_HEAD_SHA`, `DSA_BASE_SHA`, `DSA_PREV_HEAD_SHA`, `DSA_PREV_BASE_SHA`, `DSA_MERGE_BASE`, `DSA_PREV_MERGE_BASE`) provide commit SHAs for running your own git commands.
+
+**Exit code convention:**
+- **Exit 0**: changes are **not** meaningful — keep approvals
+- **Non-zero**: changes **are** meaningful (or an error occurred) — dismiss approvals
+
+This fail-closed design ensures that if the filter command errors, approvals are dismissed as a safety default.
+
+### Example: Use Claude to evaluate changes
+
+```yaml
+jobs:
+  dismiss_stale_approvals:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dismiss stale pull request approvals
+        uses: withgraphite/dismiss-stale-approvals@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          filter-command: |
+            claude -p "You are reviewing a git range-diff from a pull request.
+            Determine if the changes are meaningful enough to require re-approval.
+            Trivial changes include: whitespace, comments, formatting, dependency
+            lock file updates, and auto-generated file changes.
+            If ALL changes are trivial, exit with code 0.
+            If ANY changes are meaningful, exit with code 1.
+            Here is the range-diff:"
+```
+
+### Example: Ignore changes to specific files
+
+```yaml
+          filter-command: |
+            git diff "$DSA_MERGE_BASE".."$DSA_HEAD_SHA" --name-only \
+              | grep -vE '(\.lock$|\.generated\.)' \
+              | grep -q . && exit 1 || exit 0
+```
+
+This keeps approvals (exit 0) when the only changed files match the exclusion pattern, and dismisses (exit 1) when other files are also changed.
+
 ## Issues and contributions
 
 We (the Graphite team) have limited staffing in this area (mainly due to the need for DSA being a relatively small number of customers), which is why the action is OSS in the first place. It was an issue an enterprise customer asked us for input on while trialing so we created it as the simplest possible solution for the problem as a proof-of-concept. We don't expect it to solve the problem for every single Graphite customer exactly as implemented, which is why some of our other larger customers have forked the repo for their desired use.

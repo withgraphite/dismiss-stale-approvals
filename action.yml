@@ -16,6 +16,18 @@ inputs:
     description: 'Comment on the PR instead of dismissing approvals.'
     required: false
     default: false
+  filter-command:
+    description: >
+      A shell command to run when range-diff detects changes.
+      The range-diff output is passed via stdin and the DSA_RANGE_DIFF env var.
+      Additional env vars (DSA_HEAD_SHA, DSA_BASE_SHA, DSA_PREV_HEAD_SHA,
+      DSA_PREV_BASE_SHA, DSA_MERGE_BASE, DSA_PREV_MERGE_BASE) provide commit
+      SHAs for running your own git commands.
+      Exit 0 to keep approvals (changes are not meaningful).
+      Any non-zero exit dismisses approvals (changes are meaningful, or error).
+      When not set, all detected changes dismiss approvals (existing behavior).
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -75,14 +87,42 @@ runs:
         HAS_CHANGES=$(echo "$RANGE_DIFF" | awk '{print $3}' | grep -vq '^=$'; echo $?)
 
         if [ "$HAS_CHANGES" == "0" ]; then
-          echo "MATCH=0" >> $GITHUB_ENV
-          echo ::notice:: "PR was modified:
-        $(git range-diff --color=always "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")"
+          # Range-diff detected changes
+          FILTER_CMD="$INPUT_FILTER_COMMAND"
+          if [ -n "$FILTER_CMD" ]; then
+            echo ::notice:: "Range-diff detected changes; running filter-command to evaluate significance"
+            export DSA_RANGE_DIFF="$RANGE_DIFF"
+            export DSA_PREV_HEAD_SHA="${{ env.PREV_HEAD_SHA }}"
+            export DSA_PREV_BASE_SHA="${{ env.PREV_BASE_SHA }}"
+            export DSA_HEAD_SHA="${{ env.HEAD_SHA }}"
+            export DSA_BASE_SHA="${{ env.BASE_SHA }}"
+            export DSA_PREV_MERGE_BASE="$PREV_MERGE_BASE"
+            export DSA_MERGE_BASE="$MERGE_BASE"
+
+            FILTER_EXIT=0
+            echo "$RANGE_DIFF" | eval "$FILTER_CMD" || FILTER_EXIT=$?
+
+            if [ "$FILTER_EXIT" == "0" ]; then
+              echo "MATCH=1" >> $GITHUB_ENV
+              echo ::notice:: "filter-command exited 0: changes deemed not meaningful, keeping approvals"
+            else
+              echo "MATCH=0" >> $GITHUB_ENV
+              echo ::notice:: "filter-command exited $FILTER_EXIT: dismissing approvals"
+              echo ::notice:: "PR was modified:
+            $(git range-diff --color=always "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")"
+            fi
+          else
+            echo "MATCH=0" >> $GITHUB_ENV
+            echo ::notice:: "PR was modified:
+          $(git range-diff --color=always "$PREV_MERGE_BASE".."${{ env.PREV_HEAD_SHA }}" "$MERGE_BASE".."${{ env.HEAD_SHA }}")"
+          fi
         else
           echo "MATCH=1" >> $GITHUB_ENV
           echo "PR was not modified, range diff for debugging:"
           echo "$RANGE_DIFF"
         fi
+      env:
+        INPUT_FILTER_COMMAND: ${{ inputs.filter-command }}
 
     - name: Write SHAs to file
       if: steps.check.outcome == 'success'
