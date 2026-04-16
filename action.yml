@@ -93,7 +93,7 @@ runs:
 
     - name: Upload SHAs
       if: steps.check.outcome == 'success'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       continue-on-error: true
       id: artifact-upload-step
       with:
@@ -115,7 +115,7 @@ runs:
 
     - name: Dismiss approvals unless diff is proven unchanged
       if: env.MATCH != '1'
-      uses: withgraphite/dismiss-all-approvals-js@main
+      uses: withgraphite/dismiss-all-approvals-js@30001670863cbbd0a12cd0499d3fe49e674ebfaa
       with:
         github-token: ${{ inputs.github-token }}
         dry-run: ${{ inputs.dry-run }}
