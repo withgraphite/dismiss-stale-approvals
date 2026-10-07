@@ -3,6 +3,8 @@
 A GitHub action to automatically dismiss stale approvals on pull requests.
 Unlike the built in GitHub protection, this action will compare the `git range-diff` of the new version against the previous version, and only dismiss approvals if the diff has changed.
 
+Approvals of the current head commit are kept. Immediately before listing reviews, the action fetches the pull request and reads its live head SHA. It fetches the head again immediately before each dismissal. A review is dismissed only when its commit is different from the head at that moment. The head SHA on the workflow payload is not used for this check, because that value stays at the commit that started the run. If another push lands first, an approval of the payload commit is dismissed and an approval of the newer head is kept. A review with no commit id is dismissed, and the review id is written to the log.
+
 ## Usage
 
 1. Add the below workflow to your repository's `.github/workflows` directory.

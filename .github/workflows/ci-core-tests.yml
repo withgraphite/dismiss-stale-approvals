@@ -20,4 +20,7 @@ jobs:
          uses: actions/checkout@v4
 
        - name: Validate syntax
-         run: bash -n *.sh
+         run: bash -n *.sh tests/*.sh
+
+       - name: Test approval dismissal
+         run: bash tests/test_dismiss_approvals.sh

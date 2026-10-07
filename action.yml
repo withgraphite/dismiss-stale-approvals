@@ -1,5 +1,5 @@
 name: 'Dismiss stale approvals'
-description: 'Dismiss approvals on a pull request if the diff has changed'
+description: 'Dismiss approvals on a pull request if the diff has changed, keeping approvals of the current head'
 author: 'Graphite'
 
 inputs:
@@ -113,10 +113,20 @@ runs:
         fi
         echo "REASON=Your organization requires reapproval when changes are made, so Graphite has dismissed approvals. ${DETAILS}${{ env.WORKFLOW_RUN_URL }}" >> $GITHUB_ENV
 
+    # Dismiss in this action instead of withgraphite/dismiss-all-approvals-js.
+    # That action dismisses every APPROVED review and does not look at commit_id.
+    # Pass REASON as a shell variable: the text contains backticks, and
+    # interpolating it into the script would run them as a command.
     - name: Dismiss approvals unless diff is proven unchanged
       if: env.MATCH != '1'
-      uses: withgraphite/dismiss-all-approvals-js@main
-      with:
-        github-token: ${{ inputs.github-token }}
-        dry-run: ${{ inputs.dry-run }}
-        reason: ${{ env.REASON }}
+      shell: bash
+      env:
+        DISMISS_GITHUB_TOKEN: ${{ inputs.github-token }}
+        DISMISS_DRY_RUN: ${{ inputs.dry-run }}
+      run: |
+        dismiss_approvals.sh \
+          "$DISMISS_GITHUB_TOKEN" \
+          "${{ github.repository }}" \
+          "${{ github.event.pull_request.number }}" \
+          "$REASON" \
+          "$DISMISS_DRY_RUN"
