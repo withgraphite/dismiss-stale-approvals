@@ -115,6 +115,7 @@ runs:
 
     # Dismiss in this action instead of withgraphite/dismiss-all-approvals-js.
     # That action dismisses every APPROVED review and does not look at commit_id.
+    # The head SHA is the event payload. This step does not fetch the pull request.
     # Pass REASON as a shell variable: the text contains backticks, and
     # interpolating it into the script would run them as a command.
     - name: Dismiss approvals unless diff is proven unchanged
@@ -128,5 +129,6 @@ runs:
           "$DISMISS_GITHUB_TOKEN" \
           "${{ github.repository }}" \
           "${{ github.event.pull_request.number }}" \
+          "${{ github.event.pull_request.head.sha }}" \
           "$REASON" \
           "$DISMISS_DRY_RUN"

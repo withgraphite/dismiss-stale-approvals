@@ -1,18 +1,18 @@
 #!/bin/bash
-# Dismiss APPROVED reviews that are not on the pull request's live head.
+# Dismiss APPROVED reviews that are not on the event head SHA.
 #
-# Fetch the head SHA from the pull request API immediately before listing
-# reviews, and again immediately before each dismissal. HEAD_SHA from the
-# workflow payload is frozen when the run starts, so it must not be used here.
-# An approval of that payload SHA is stale if a later push has moved the head.
+# The workflow passes github.event.pull_request.head.sha. This script does
+# not fetch the pull request. An approval is kept when commit_id equals that
+# SHA and dismissed when it differs. A missing commit_id is logged and dismissed.
 
 set -euo pipefail
 
 github_token=${1:?github token is required}
 repository=${2:?repository is required}
 pr_number=${3:?pull request number is required}
-reason=${4:?dismissal reason is required}
-dry_run=${5:-false}
+head_sha=${4:?head sha is required}
+reason=${5:?dismissal reason is required}
+dry_run=${6:-false}
 
 echoerr() { echo "$@" 1>&2; }
 
@@ -32,12 +32,6 @@ auth_args=(
   -H "Authorization: Bearer ${github_token}"
   -H "Accept: application/vnd.github+json"
 )
-
-fetch_head_sha() {
-  curl -sS -f "${auth_args[@]}" \
-    "${api_base}/repos/${repository}/pulls/${pr_number}" \
-    | jq -er '.head.sha'
-}
 
 extract_next_url() {
   local headers_file=$1
@@ -93,12 +87,11 @@ post_dry_run_comment() {
     >/dev/null
 }
 
-head_sha=$(fetch_head_sha)
-if [ -z "$head_sha" ] || [ "$head_sha" = "null" ]; then
-  echoerr "Failed to read the live pull request head SHA"
+if [ "$head_sha" = "null" ]; then
+  echoerr "Head SHA is required"
   exit 1
 fi
-echo "Live head SHA before listing reviews: ${head_sha}"
+echo "Head SHA: ${head_sha}"
 
 reviews_json=$(list_reviews)
 mapfile -t rows < <(jq -r '
@@ -118,18 +111,12 @@ for row in "${rows[@]+"${rows[@]}"}"; do
   fi
 
   if [ -n "$commit_id" ] && [ "$commit_id" = "$head_sha" ]; then
-    echo "Keeping review ${review_id} on current head ${head_sha}"
+    echo "Keeping review ${review_id} on head ${head_sha}"
     continue
   fi
 
   if [ -z "$commit_id" ]; then
     echo "::warning::Review ${review_id} has no commit_id; dismissing"
-  fi
-
-  head_now=$(fetch_head_sha)
-  if [ -n "$commit_id" ] && [ "$commit_id" = "$head_now" ]; then
-    echo "Keeping review ${review_id}; commit ${commit_id} matches head ${head_now} at dismiss time"
-    continue
   fi
 
   if [ "$is_dry_run" -eq 1 ]; then
@@ -139,7 +126,7 @@ for row in "${rows[@]+"${rows[@]}"}"; do
   fi
 
   if [ -n "$commit_id" ]; then
-    echo "Dismissing review ${review_id} (commit ${commit_id}, head ${head_now})"
+    echo "Dismissing review ${review_id} (commit ${commit_id}, head ${head_sha})"
   fi
   dismiss_review "$review_id"
 done

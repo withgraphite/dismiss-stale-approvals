@@ -1,7 +1,6 @@
 #!/bin/bash
-# Cases for keeping approvals of the live head while dismissing stale ones.
-# The mock GitHub API is started per test. HEAD_SHA is the frozen payload SHA
-# and must not decide which reviews are dismissed.
+# Cases for keeping approvals of the passed head SHA while dismissing stale ones.
+# The mock GitHub API is started per test. The script must not GET the pull request.
 
 set -euo pipefail
 
@@ -58,8 +57,6 @@ from urllib.parse import urlparse
 config_path, state_path, port_path = sys.argv[1:4]
 config = json.load(open(config_path))
 STATE = {
-    "pull_shas": config["pull_shas"],
-    "pull_index": 0,
     "review_pages": config.get("review_pages") or [config.get("reviews", [])],
     "review_page": 0,
     "calls": [],
@@ -74,7 +71,6 @@ def flush():
         "dismissals": STATE["dismissals"],
         "comments": STATE["comments"],
         "last_auth": STATE["last_auth"],
-        "pull_index": STATE["pull_index"],
         "review_page": STATE["review_page"],
     }
     tmp = state_path + ".tmp"
@@ -145,18 +141,6 @@ class Handler(BaseHTTPRequestHandler):
             flush()
             self._send(200, page, extra)
             return
-        if "/pulls/" in path:
-            self._record("GET")
-            shas = STATE["pull_shas"]
-            index = STATE["pull_index"]
-            if not shas:
-                self._send(500, {"message": "no shas"})
-                return
-            sha = shas[index] if index < len(shas) else shas[-1]
-            STATE["pull_index"] = index + 1
-            flush()
-            self._send(200, {"head": {"sha": sha}})
-            return
         self._send(404, {"message": "not found", "path": path})
 
     def do_PUT(self):
@@ -213,7 +197,7 @@ run_script() {
   local dry_run=$1
   SCRIPT_OUTPUT=$(mktemp)
   set +e
-  ./dismiss_approvals.sh "test-token" "acme/app" 7 "$REASON" "$dry_run" >"$SCRIPT_OUTPUT" 2>&1
+  ./dismiss_approvals.sh "test-token" "acme/app" 7 "$HEAD_SHA" "$REASON" "$dry_run" >"$SCRIPT_OUTPUT" 2>&1
   SCRIPT_STATUS=$?
   set -e
   if [ "$SCRIPT_STATUS" -ne 0 ]; then
@@ -256,37 +240,28 @@ assert_no_writes() {
   fi
 }
 
-assert_listed_after_live_head() {
-  local first second
-  first=$(jq -r '.calls[0] | .method + " " + .path' "$STATE_FILE")
-  second=$(jq -r '.calls[1] | .method + " " + .path' "$STATE_FILE")
-  if [ "$first" != "GET /repos/acme/app/pulls/7" ]; then
-    die "expected a pull request fetch before listing reviews, got ${first}"
-  fi
-  if [ "$second" != "GET /repos/acme/app/pulls/7/reviews" ]; then
-    die "expected list reviews immediately after the live head fetch, got ${second}"
-  fi
-}
-
-PULL="/repos/acme/app/pulls/7"
 REVIEWS="/repos/acme/app/pulls/7/reviews"
 
-echo "==> keep approval when the head is still the SHA that started the job"
-export HEAD_SHA=sha-job-start
+echo "==> keep approval on the passed SHA"
+export HEAD_SHA=sha-head
 write_config <<'JSON'
 {
-  "pull_shas": ["sha-job-start", "sha-should-not-be-read"],
   "reviews": [
-    {"id": 101, "state": "APPROVED", "commit_id": "sha-job-start"},
+    {"id": 101, "state": "APPROVED", "commit_id": "sha-head"},
     {"id": 102, "state": "COMMENTED", "commit_id": "sha-older"}
   ]
 }
 JSON
 start_mock
 run_script false
-assert_listed_after_live_head
+assert_calls "$(cat <<JSON
+[
+  {"method": "GET", "path": "${REVIEWS}", "review_id": null}
+]
+JSON
+)"
 assert_no_writes
-if ! grep -q "Keeping review 101 on current head sha-job-start" "$SCRIPT_OUTPUT"; then
+if ! grep -q "Keeping review 101 on head sha-head" "$SCRIPT_OUTPUT"; then
   die "expected to keep review 101"
 fi
 auth=$(jq -r '.last_auth' "$STATE_FILE")
@@ -295,14 +270,13 @@ if [ "$auth" != "Bearer test-token" ]; then
 fi
 
 echo "==> dismiss an approval on an older SHA"
-export HEAD_SHA=sha-job-start
+export HEAD_SHA=sha-head
 write_config <<'JSON'
 {
-  "pull_shas": ["sha-job-start", "sha-job-start"],
   "reviews": [
     {"id": 201, "state": "APPROVED", "commit_id": "sha-older"},
     {"id": 202, "state": "CHANGES_REQUESTED", "commit_id": "sha-older"},
-    {"id": 203, "state": "COMMENTED", "commit_id": "sha-job-start"}
+    {"id": 203, "state": "COMMENTED", "commit_id": "sha-head"}
   ]
 }
 JSON
@@ -310,67 +284,17 @@ start_mock
 run_script false
 assert_calls "$(cat <<JSON
 [
-  {"method": "GET", "path": "${PULL}", "review_id": null},
   {"method": "GET", "path": "${REVIEWS}", "review_id": null},
-  {"method": "GET", "path": "${PULL}", "review_id": null},
-  {"method": "PUT", "path": "${PULL}/reviews/201/dismissals", "review_id": 201}
+  {"method": "PUT", "path": "${REVIEWS}/201/dismissals", "review_id": 201}
 ]
 JSON
 )"
 assert_dismissals "$(jq -nc --arg message "$REASON" '[{review_id: 201, message: $message}]')"
 
-echo "==> head moved before listReviews: keep an approval of the newest SHA"
-export HEAD_SHA=sha-job-start
-write_config <<'JSON'
-{
-  "pull_shas": ["sha-newest", "sha-moved-after-list"],
-  "reviews": [
-    {"id": 301, "state": "APPROVED", "commit_id": "sha-newest"}
-  ]
-}
-JSON
-start_mock
-run_script false
-assert_listed_after_live_head
-assert_no_writes
-if ! grep -q "Keeping review 301 on current head sha-newest" "$SCRIPT_OUTPUT"; then
-  die "expected to keep the approval of the newest head"
-fi
-if grep -q "sha-job-start" "$SCRIPT_OUTPUT"; then
-  die "payload SHA leaked into the keep decision"
-fi
-
-echo "==> head moved before listReviews: dismiss an approval of the SHA that started the run"
-export HEAD_SHA=sha-job-start
-write_config <<'JSON'
-{
-  "pull_shas": ["sha-newest", "sha-newest"],
-  "reviews": [
-    {"id": 401, "state": "APPROVED", "commit_id": "sha-job-start"}
-  ]
-}
-JSON
-start_mock
-run_script false
-assert_calls "$(cat <<JSON
-[
-  {"method": "GET", "path": "${PULL}", "review_id": null},
-  {"method": "GET", "path": "${REVIEWS}", "review_id": null},
-  {"method": "GET", "path": "${PULL}", "review_id": null},
-  {"method": "PUT", "path": "${PULL}/reviews/401/dismissals", "review_id": 401}
-]
-JSON
-)"
-assert_dismissals "$(jq -nc --arg message "$REASON" '[{review_id: 401, message: $message}]')"
-if ! grep -q "Dismissing review 401" "$SCRIPT_OUTPUT"; then
-  die "expected to dismiss the approval of the payload SHA"
-fi
-
 echo "==> missing commit_id is dismissed and the review id is logged"
-export HEAD_SHA=sha-job-start
+export HEAD_SHA=sha-head
 write_config <<'JSON'
 {
-  "pull_shas": ["sha-job-start", "sha-job-start"],
   "reviews": [
     {"id": 501, "state": "APPROVED", "commit_id": null},
     {"id": 502, "state": "COMMENTED"}
@@ -381,10 +305,8 @@ start_mock
 run_script false
 assert_calls "$(cat <<JSON
 [
-  {"method": "GET", "path": "${PULL}", "review_id": null},
   {"method": "GET", "path": "${REVIEWS}", "review_id": null},
-  {"method": "GET", "path": "${PULL}", "review_id": null},
-  {"method": "PUT", "path": "${PULL}/reviews/501/dismissals", "review_id": 501}
+  {"method": "PUT", "path": "${REVIEWS}/501/dismissals", "review_id": 501}
 ]
 JSON
 )"
@@ -399,66 +321,12 @@ if [ "$warnings" != "1" ]; then
   die "expected one missing commit_id log line, got ${warnings}"
 fi
 
-echo "==> head moves after listReviews: keep an approval that matches the head at dismiss time"
-export HEAD_SHA=sha-job-start
-write_config <<'JSON'
-{
-  "pull_shas": ["sha-at-list", "sha-at-dismiss"],
-  "reviews": [
-    {"id": 601, "state": "APPROVED", "commit_id": "sha-at-dismiss"}
-  ]
-}
-JSON
-start_mock
-run_script false
-assert_calls "$(cat <<JSON
-[
-  {"method": "GET", "path": "${PULL}", "review_id": null},
-  {"method": "GET", "path": "${REVIEWS}", "review_id": null},
-  {"method": "GET", "path": "${PULL}", "review_id": null}
-]
-JSON
-)"
-assert_no_writes
-if ! grep -q "matches head sha-at-dismiss at dismiss time" "$SCRIPT_OUTPUT"; then
-  die "expected the dismiss-time head check to keep review 601"
-fi
-
-echo "==> re-fetch the live head before each dismissal"
-export HEAD_SHA=sha-job-start
-write_config <<'JSON'
-{
-  "pull_shas": ["sha-list", "sha-list", "sha-old-2"],
-  "reviews": [
-    {"id": 701, "state": "APPROVED", "commit_id": "sha-old-1"},
-    {"id": 702, "state": "APPROVED", "commit_id": "sha-old-2"}
-  ]
-}
-JSON
-start_mock
-run_script false
-assert_calls "$(cat <<JSON
-[
-  {"method": "GET", "path": "${PULL}", "review_id": null},
-  {"method": "GET", "path": "${REVIEWS}", "review_id": null},
-  {"method": "GET", "path": "${PULL}", "review_id": null},
-  {"method": "PUT", "path": "${PULL}/reviews/701/dismissals", "review_id": 701},
-  {"method": "GET", "path": "${PULL}", "review_id": null}
-]
-JSON
-)"
-assert_dismissals "$(jq -nc --arg message "$REASON" '[{review_id: 701, message: $message}]')"
-if ! grep -q "matches head sha-old-2 at dismiss time" "$SCRIPT_OUTPUT"; then
-  die "expected review 702 to be kept after the per-dismiss head fetch"
-fi
-
 echo "==> follow review pagination and still apply the head check"
-export HEAD_SHA=sha-job-start
+export HEAD_SHA=sha-head
 write_config <<'JSON'
 {
-  "pull_shas": ["sha-job-start", "sha-job-start"],
   "review_pages": [
-    [{"id": 801, "state": "APPROVED", "commit_id": "sha-job-start"}],
+    [{"id": 801, "state": "APPROVED", "commit_id": "sha-head"}],
     [{"id": 802, "state": "APPROVED", "commit_id": "sha-older"}]
   ]
 }
@@ -467,23 +335,20 @@ start_mock
 run_script false
 assert_calls "$(cat <<JSON
 [
-  {"method": "GET", "path": "${PULL}", "review_id": null},
   {"method": "GET", "path": "${REVIEWS}", "review_id": null},
   {"method": "GET", "path": "${REVIEWS}", "review_id": null},
-  {"method": "GET", "path": "${PULL}", "review_id": null},
-  {"method": "PUT", "path": "${PULL}/reviews/802/dismissals", "review_id": 802}
+  {"method": "PUT", "path": "${REVIEWS}/802/dismissals", "review_id": 802}
 ]
 JSON
 )"
 assert_dismissals "$(jq -nc --arg message "$REASON" '[{review_id: 802, message: $message}]')"
 
-echo "==> dry run comments for stale approvals and does not dismiss the current head"
-export HEAD_SHA=sha-job-start
+echo "==> dry run comments for stale approvals and does not dismiss the passed SHA"
+export HEAD_SHA=sha-head
 write_config <<'JSON'
 {
-  "pull_shas": ["sha-job-start", "sha-job-start"],
   "reviews": [
-    {"id": 901, "state": "APPROVED", "commit_id": "sha-job-start"},
+    {"id": 901, "state": "APPROVED", "commit_id": "sha-head"},
     {"id": 902, "state": "APPROVED", "commit_id": "sha-older"}
   ]
 }
@@ -492,9 +357,7 @@ start_mock
 run_script true
 assert_calls "$(cat <<JSON
 [
-  {"method": "GET", "path": "${PULL}", "review_id": null},
   {"method": "GET", "path": "${REVIEWS}", "review_id": null},
-  {"method": "GET", "path": "${PULL}", "review_id": null},
   {"method": "POST", "path": "/repos/acme/app/issues/7/comments", "review_id": null}
 ]
 JSON
@@ -511,10 +374,9 @@ if [ "$body" != "$expected" ]; then
 fi
 
 echo "==> omitted commit_id is dismissed the same way as null"
-export HEAD_SHA=sha-job-start
+export HEAD_SHA=sha-head
 write_config <<'JSON'
 {
-  "pull_shas": ["sha-job-start", "sha-job-start"],
   "reviews": [
     {"id": 1001, "state": "APPROVED"}
   ]
@@ -522,6 +384,13 @@ write_config <<'JSON'
 JSON
 start_mock
 run_script false
+assert_calls "$(cat <<JSON
+[
+  {"method": "GET", "path": "${REVIEWS}", "review_id": null},
+  {"method": "PUT", "path": "${REVIEWS}/1001/dismissals", "review_id": 1001}
+]
+JSON
+)"
 assert_dismissals "$(jq -nc --arg message "$REASON" '[{review_id: 1001, message: $message}]')"
 if ! grep -qF "Review 1001 has no commit_id; dismissing" "$SCRIPT_OUTPUT"; then
   die "expected the missing commit_id warning to include review 1001"
