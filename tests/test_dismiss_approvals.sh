@@ -51,7 +51,7 @@ case "$url" in
       printf '%s\n' "$REVIEWS_RESPONSE"
     fi
     ;;
-  */pulls/42/reviews/101/dismissals | */pulls/42/reviews/104/dismissals | */pulls/42/reviews/105/dismissals | */pulls/42/reviews/106/dismissals | */pulls/42/reviews/107/dismissals | */pulls/42/reviews/201/dismissals)
+  */pulls/42/reviews/101/dismissals | */pulls/42/reviews/104/dismissals | */pulls/42/reviews/105/dismissals | */pulls/42/reviews/106/dismissals | */pulls/42/reviews/201/dismissals)
     printf '%s\n' '{}'
     ;;
   */issues/42/comments)
@@ -121,35 +121,25 @@ REVIEWS_RESPONSE='[
   {"id":101,"state":"APPROVED","commit_id":"1111111111111111111111111111111111111111","user":{"login":"alice"}},
   {"id":104,"state":"APPROVED","commit_id":"1111111111111111111111111111111111111111","user":{"login":"alice"}},
   {"id":105,"state":"APPROVED","commit_id":"1111111111111111111111111111111111111111","user":{"login":"ci-helper[bot]"}},
-  {"id":106,"state":"APPROVED","commit_id":"1111111111111111111111111111111111111111","user":null},
-  {"id":107,"state":"APPROVED","commit_id":"1111111111111111111111111111111111111111","user":{"login":"jane_doe_acme"}}
+  {"id":106,"state":"APPROVED","commit_id":"1111111111111111111111111111111111111111","user":null}
 ]'
-skipped_output="$work_dir/skipped-output.txt"
 GITHUB_TOKEN='test-token' CURL_BIN="$fake_curl" \
   "$repo_root/dismiss_approvals.sh" \
   owner/repository \
   42 \
   false \
   "Security policy" \
-  "2222222222222222222222222222222222222222" > "$skipped_output" 2>&1
-for review_id in 101 104 105 106 107; do
+  "2222222222222222222222222222222222222222"
+for review_id in 101 104 105 106; do
   assert_file_contains \
     "/pulls/42/reviews/${review_id}/dismissals" \
     "$CURL_LOG" \
     "every stale approval should be dismissed"
 done
 assert_equals \
-  $'{"reviewers":["alice"]}\n{"reviewers":["jane_doe_acme"]}' \
+  '{"reviewers":["alice"]}' \
   "$(jq -c . "$REREQUEST_LOG")" \
-  "a reviewer should be re-requested once, an Enterprise Managed User login with an underscore requested, and bots or deleted users skipped"
-assert_file_contains \
-  'did not re-request review: its author (ci-helper\[bot\])' \
-  "$skipped_output" \
-  "a skipped bot approval should be reported"
-assert_file_contains \
-  'did not re-request review: its author (no user)' \
-  "$skipped_output" \
-  "a skipped approval with no user should be reported"
+  "a reviewer should be re-requested once and bots or deleted users skipped"
 
 # A failed re-request is only a missed notification: the approval stays
 # dismissed and the job still succeeds.

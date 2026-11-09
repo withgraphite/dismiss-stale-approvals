@@ -98,9 +98,7 @@ A failed dismissal fails the job, because the approval would still count. A
 failed re-request only produces a warning, because the stale approval is
 already dismissed and only the notification was missed. The script skips
 approvals whose author is a bot or a deleted account, which GitHub cannot
-re-request, and logs a notice for each so a missing notification is visible.
-Logins with underscores, such as Enterprise Managed User logins, are valid and
-are re-requested. In dry-run mode the script re-requests no one and lists the
+re-request. In dry-run mode the script re-requests no one and lists the
 reviewers it would re-request in its pull request comment.
 
 The script checks the live pull request head before and after reading reviews.

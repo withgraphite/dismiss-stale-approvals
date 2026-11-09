@@ -62,13 +62,10 @@ if [[ "$live_head_sha" != "$current_head_sha" ]]; then
   exit 0
 fi
 
-# Accepts the characters GitHub allows in a user login: letters, digits,
-# hyphens, and underscores. Enterprise Managed User logins contain an
-# underscore ("username_shortcode") and can exceed 39 characters because of the
-# suffix. This also rejects bot accounts ("name[bot]"), which cannot be asked to
-# review.
+# GitHub user logins are alphanumeric with single hyphens. This also rejects
+# bot accounts ("name[bot]"), which cannot be asked to review.
 is_requestable_login() {
-  [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$ ]]
+  [[ "$1" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,38})$ ]]
 }
 
 # approval_ids[i] is the review ID and approval_logins[i] is its author's
@@ -181,12 +178,8 @@ for index in "${!approval_ids[@]}"; do
     "https://api.github.com/repos/${repository}/pulls/${pr_number}/reviews/${approval_id}/dismissals" \
     <<< "$payload" >/dev/null
 
-  if ! is_requestable_login "$approval_login"; then
-    # Say so instead of skipping silently, so a missed notification is visible.
-    echo "::notice::Dismissed approval ${approval_id} but did not re-request review: its author (${approval_login:-no user}) cannot be requested."
-    continue
-  fi
-  if [[ "$requested_so_far" == *" $approval_login "* ]]; then
+  if ! is_requestable_login "$approval_login" ||
+    [[ "$requested_so_far" == *" $approval_login "* ]]; then
     continue
   fi
   requested_so_far+="$approval_login "
